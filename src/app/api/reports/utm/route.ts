@@ -8,6 +8,16 @@ import { reportParms } from '@/lib/schema';
 export async function POST(request: Request) {
   const schema = z.object({
     ...reportParms,
+    filters: z
+      .object({
+        source: z.string().optional(),
+        medium: z.string().optional(),
+        campaign: z.string().optional(),
+        content: z.string().optional(),
+        term: z.string().optional(),
+      })
+      .optional(),
+    limit: z.coerce.number().int().positive().max(100).optional(),
   });
 
   const { auth, body, error } = await parseRequest(request, schema);
@@ -19,6 +29,8 @@ export async function POST(request: Request) {
   const {
     websiteId,
     dateRange: { startDate, endDate, timezone },
+    filters,
+    limit,
   } = body;
 
   if (!(await canViewWebsite(auth, websiteId))) {
@@ -29,6 +41,8 @@ export async function POST(request: Request) {
     startDate: new Date(startDate),
     endDate: new Date(endDate),
     timezone,
+    filters,
+    limit: limit ?? 10,
   });
 
   return json(data);

@@ -2,7 +2,6 @@ const path = require('path');
 const fs = require('fs');
 const dotenv = require('dotenv');
 const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcryptjs');
 const { addDays, subDays } = require('date-fns');
 const { randomUUID } = require('crypto');
 
@@ -16,7 +15,6 @@ for (const file of envFiles) {
 }
 
 const prisma = new PrismaClient();
-const ADMIN_ROLE = 'admin';
 
 function log(message) {
   process.stdout.write(`${message}\n`);
@@ -26,29 +24,17 @@ function error(message) {
   process.stderr.write(`${message}\n`);
 }
 
-function hashPassword(password) {
-  return bcrypt.hashSync(password, 10);
-}
-
-async function upsertUser() {
-  const userId = '11111111-1111-1111-1111-111111111111';
-  const password = hashPassword('demo1234');
-
-  await prisma.user.upsert({
-    where: { id: userId },
-    create: {
-      id: userId,
-      username: 'demo.admin',
-      password,
-      role: ADMIN_ROLE,
-    },
-    update: {
-      password,
-      role: ADMIN_ROLE,
-    },
+async function findDefaultAdmin() {
+  const user = await prisma.user.findFirst({
+    where: { username: 'admin' },
+    select: { id: true },
   });
 
-  return userId;
+  if (!user) {
+    throw new Error('Default admin user with username "admin" not found.');
+  }
+
+  return user.id;
 }
 
 async function upsertWebsite(userId) {
@@ -166,7 +152,7 @@ function buildEvents(websiteId, sessionIds) {
 async function seed() {
   log('Seeding demo data...');
 
-  const userId = await upsertUser();
+  const userId = await findDefaultAdmin();
   const websiteId = await upsertWebsite(userId);
 
   const sessions = buildSessions(websiteId);
