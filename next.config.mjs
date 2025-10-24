@@ -8,7 +8,7 @@ const TRACKER_SCRIPT = '/script.js';
 
 const basePath = process.env.BASE_PATH;
 const collectApiEndpoint = process.env.COLLECT_API_ENDPOINT;
-const cloudMode = process.env.CLOUD_MODE;
+const cloudMode = process.env.CLOUD_MODE === 'true';
 const cloudUrl = process.env.CLOUD_URL;
 const corsMaxAge = process.env.CORS_MAX_AGE;
 const defaultLocale = process.env.DEFAULT_LOCALE;
@@ -181,7 +181,7 @@ export default {
   reactStrictMode: false,
   env: {
     basePath,
-    cloudMode,
+    cloudMode: cloudMode ? 'true' : '',
     cloudUrl,
     currentVersion: pkg.version,
     defaultLocale,
