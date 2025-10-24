@@ -18,6 +18,7 @@
     "start-docker": "npm-run-all check-db update-tracker set-routes-manifest start-server",
     "start-env": "node scripts/start-env.js",
     "start-server": "node server.js",
+    "seed": "node scripts/seed/index.js",
     "build-app": "next build",
     "build-components": "rollup -c rollup.components.config.mjs",
     "build-tracker": "rollup -c rollup.tracker.config.mjs",

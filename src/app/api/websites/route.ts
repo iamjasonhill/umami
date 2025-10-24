@@ -3,7 +3,7 @@ import { canCreateTeamWebsite, canCreateWebsite } from '@/lib/auth';
 import { json, unauthorized } from '@/lib/response';
 import { uuid } from '@/lib/crypto';
 import { parseRequest } from '@/lib/request';
-import { createWebsite, getUserWebsites } from '@/queries';
+import { createWebsite, getUserWebsites, getWebsites } from '@/queries';
 import { pagingParams } from '@/lib/schema';
 
 export async function GET(request: Request) {
@@ -15,7 +15,27 @@ export async function GET(request: Request) {
     return error();
   }
 
-  const websites = await getUserWebsites(auth.user.id, query);
+  const filters = {
+    orderBy: 'name' as const,
+    ...query,
+  };
+
+  const websites = auth.user?.isAdmin
+    ? await getWebsites(
+        {
+          where: {},
+          include: {
+            user: {
+              select: {
+                username: true,
+                id: true,
+              },
+            },
+          },
+        },
+        filters,
+      )
+    : await getUserWebsites(auth.user.id, filters);
 
   return json(websites);
 }

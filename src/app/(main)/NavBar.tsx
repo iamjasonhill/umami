@@ -23,6 +23,7 @@ export function NavBar() {
   const links = [
     { label: formatMessage(labels.dashboard), url: renderTeamUrl('/dashboard') },
     { label: formatMessage(labels.websites), url: renderTeamUrl('/websites') },
+    !cloudMode && { label: formatMessage(labels.utm), url: renderTeamUrl('/reports/utm') },
     { label: formatMessage(labels.reports), url: renderTeamUrl('/reports') },
     { label: formatMessage(labels.settings), url: renderTeamUrl('/settings') },
   ].filter(n => n);
@@ -31,6 +32,10 @@ export function NavBar() {
     {
       label: formatMessage(labels.dashboard),
       url: renderTeamUrl('/dashboard'),
+    },
+    !cloudMode && {
+      label: formatMessage(labels.utm),
+      url: renderTeamUrl('/reports/utm'),
     },
     !cloudMode && {
       label: formatMessage(labels.settings),
