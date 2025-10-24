@@ -5,7 +5,7 @@ import styles from './MenuLayout.module.css';
 
 export function MenuLayout({ items = [], children }: { items: any[]; children: ReactNode }) {
   const pathname = usePathname();
-  const cloudMode = !!process.env.cloudMode;
+  const cloudMode = process.env.cloudMode === 'true';
 
   const getKey = () => items.find(({ url }) => pathname === url)?.key;
 
