@@ -16,7 +16,7 @@ export function WebsitesDataTable({
   showActions?: boolean;
   children?: ReactNode;
 }) {
-  const queryResult = useWebsites({ teamId });
+  const queryResult = useWebsites({ teamId }, { pageSize: 15, orderBy: 'name' });
 
   return (
     <DataTable queryResult={queryResult} renderEmpty={() => children}>
