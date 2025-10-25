@@ -20,7 +20,7 @@ export function WebsiteWorkspaceLayout({ children, websiteId }: WebsiteWorkspace
   const analyticsPath = renderTeamUrl(`/websites/${websiteId}/analytics`);
   const goalsPath = renderTeamUrl(`/websites/${websiteId}/goals`);
   const utmPath = renderTeamUrl(`/websites/${websiteId}/utm`);
-  const settingsPath = renderTeamUrl(`/websites/${websiteId}/settings`);
+  const settingsPath = renderTeamUrl(`/settings/websites/${websiteId}`);
 
   useEffect(() => {
     if (websiteId) {
