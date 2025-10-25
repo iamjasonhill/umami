@@ -12,7 +12,6 @@ import Icons from '@/components/icons';
 import { useMessages, useNavigation, useTeamUrl } from '@/components/hooks';
 import { getItem, setItem } from '@/lib/storage';
 import styles from './NavBar.module.css';
-import NavWebsiteSelector from '@/components/navigation/NavWebsiteSelector';
 
 export function NavBar() {
   const { formatMessage, labels } = useMessages();
@@ -128,7 +127,6 @@ export function NavBar() {
         })}
       </div>
       <div className={styles.actions}>
-        <NavWebsiteSelector />
         <TeamsButton onChange={handleTeamChange} />
         <ThemeButton />
         <LanguageButton />
