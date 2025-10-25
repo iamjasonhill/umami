@@ -13,7 +13,6 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
       label: formatMessage(labels.websites),
       url: '/settings/websites',
     },
-    { key: 'teams', label: formatMessage(labels.teams), url: '/settings/teams' },
     user.isAdmin && {
       key: 'users',
       label: formatMessage(labels.users),
