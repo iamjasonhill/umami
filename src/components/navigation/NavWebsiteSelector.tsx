@@ -1,12 +1,19 @@
 import { useEffect, useMemo } from 'react';
 import { Dropdown, Item, Flexbox, Text } from 'react-basics';
-import { useMessages, useSelectedWebsite, useWebsites, useTeamUrl } from '@/components/hooks';
+import {
+  useMessages,
+  useSelectedWebsite,
+  useWebsites,
+  useTeamUrl,
+  useNavigation,
+} from '@/components/hooks';
 import Empty from '@/components/common/Empty';
 
 export function NavWebsiteSelector() {
   const { formatMessage, labels, messages } = useMessages();
-  const { teamId } = useTeamUrl();
+  const { teamId, renderTeamUrl } = useTeamUrl();
   const { websiteId, setWebsiteId } = useSelectedWebsite();
+  const { pathname, router, query } = useNavigation();
   const queryResult = useWebsites({ teamId }, { pageSize: 50 });
 
   const items = useMemo(() => queryResult.result?.data || [], [queryResult.result?.data]);
@@ -18,7 +25,27 @@ export function NavWebsiteSelector() {
   }, [websiteId, items, setWebsiteId]);
 
   const handleChange = (key: any) => {
-    setWebsiteId(key as string);
+    const nextWebsiteId = key as string;
+
+    setWebsiteId(nextWebsiteId);
+
+    const prefix = teamId ? `/teams/${teamId}/websites/` : '/websites/';
+    const isWebsitePath = pathname.startsWith(prefix);
+    let suffix = '/analytics';
+
+    if (isWebsitePath) {
+      const rest = pathname.slice(prefix.length);
+      const slashIndex = rest.indexOf('/');
+      const currentSuffix = slashIndex >= 0 ? rest.slice(slashIndex) : '';
+
+      suffix = currentSuffix || '/analytics';
+    }
+
+    const target = renderTeamUrl(`/websites/${nextWebsiteId}${suffix}`);
+    const searchParams = isWebsitePath ? new URLSearchParams(query).toString() : '';
+    const nextUrl = searchParams ? `${target}?${searchParams}` : target;
+
+    router.push(nextUrl);
   };
 
   return (
