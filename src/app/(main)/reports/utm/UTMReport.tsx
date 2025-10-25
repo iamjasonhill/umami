@@ -8,6 +8,8 @@ import UTMParameters from './UTMParameters';
 import UTMView from './UTMView';
 import Tag from '@/assets/tag.svg';
 import { REPORT_TYPES } from '@/lib/constants';
+import { useDateRange } from '@/components/hooks';
+import UTMAutoRun from './UTMAutoRun';
 
 interface UTMReportProps {
   reportId?: string;
@@ -20,16 +22,21 @@ export default function UTMReport({
   websiteId,
   allowWebsiteSelect = true,
 }: UTMReportProps) {
+  const { dateRange } = useDateRange(websiteId);
   const defaultParameters = useMemo(
     () => ({
       type: REPORT_TYPES.utm,
-      parameters: websiteId ? { websiteId } : {},
+      parameters: {
+        ...(websiteId ? { websiteId } : {}),
+        ...(dateRange ? { dateRange } : {}),
+      },
     }),
-    [websiteId],
+    [websiteId, dateRange],
   );
 
   return (
     <Report reportId={reportId} defaultParameters={defaultParameters}>
+      <UTMAutoRun parameters={defaultParameters.parameters} />
       <ReportHeader icon={<Tag />} />
       <ReportMenu>
         <UTMParameters allowWebsiteSelect={allowWebsiteSelect} />
