@@ -20,7 +20,6 @@ export function WebsiteWorkspaceLayout({ children, websiteId }: WebsiteWorkspace
   const analyticsPath = renderTeamUrl(`/websites/${websiteId}/analytics`);
   const goalsPath = renderTeamUrl(`/websites/${websiteId}/goals`);
   const utmPath = renderTeamUrl(`/websites/${websiteId}/utm`);
-  const settingsPath = renderTeamUrl(`/settings/websites/${websiteId}`);
 
   useEffect(() => {
     if (websiteId) {
@@ -32,7 +31,6 @@ export function WebsiteWorkspaceLayout({ children, websiteId }: WebsiteWorkspace
     { key: 'overview', label: formatMessage(labels.overview), url: analyticsPath },
     { key: 'goals', label: formatMessage(labels.goals), url: goalsPath },
     { key: 'utm', label: formatMessage(labels.utm), url: utmPath },
-    { key: 'settings', label: formatMessage(labels.settings), url: settingsPath },
   ];
 
   const selectedKey = useMemo(() => {
