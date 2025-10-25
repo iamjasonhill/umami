@@ -10,6 +10,7 @@ import ShareUrl from './ShareUrl';
 import TrackingCode from './TrackingCode';
 import WebsiteData from './WebsiteData';
 import WebsiteEditForm from './WebsiteEditForm';
+import GoalsTable from './GoalsTable';
 
 export function WebsiteSettings({
   websiteId,
@@ -58,11 +59,15 @@ export function WebsiteSettings({
         <Item key="tracking">{formatMessage(labels.trackingCode)}</Item>
         <Item key="share">{formatMessage(labels.shareUrl)}</Item>
         <Item key="data">{formatMessage(labels.data)}</Item>
+        <Item key="goals">
+          <Text>{formatMessage(labels.goals)}</Text>
+        </Item>
       </Tabs>
       {tab === 'details' && <WebsiteEditForm websiteId={websiteId} onSave={handleSave} />}
       {tab === 'tracking' && <TrackingCode websiteId={websiteId} />}
       {tab === 'share' && <ShareUrl onSave={handleSave} />}
       {tab === 'data' && <WebsiteData websiteId={websiteId} onSave={handleSave} />}
+      {tab === 'goals' && <GoalsTable websiteId={websiteId} />}
     </>
   );
 }

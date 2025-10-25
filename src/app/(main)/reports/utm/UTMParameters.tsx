@@ -4,7 +4,11 @@ import { Form, FormButtons, FormRow, FormInput, SubmitButton, TextField } from '
 import { ReportContext } from '../[reportId]/Report';
 import BaseParameters from '../[reportId]/BaseParameters';
 
-export function UTMParameters() {
+export function UTMParameters({
+  allowWebsiteSelect = true,
+}: {
+  allowWebsiteSelect?: boolean;
+} = {}) {
   const { report, runReport, isRunning } = useContext(ReportContext);
   const { formatMessage, labels } = useMessages();
 
@@ -23,7 +27,7 @@ export function UTMParameters() {
 
   return (
     <Form values={{ ...parameters, filters, limit }} onSubmit={handleSubmit} preventSubmit={true}>
-      <BaseParameters showDateSelect={true} allowWebsiteSelect={!id} />
+      <BaseParameters showDateSelect={true} allowWebsiteSelect={allowWebsiteSelect && !id} />
       <FormRow label={formatMessage(labels.filters)}>
         <div
           style={{

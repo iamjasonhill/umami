@@ -279,6 +279,10 @@ export const labels = defineMessages({
     id: 'label.goals-description',
     defaultMessage: 'Track your goals for pageviews and events.',
   },
+  addGoal: { id: 'label.add-goal', defaultMessage: 'Add goal' },
+  editGoal: { id: 'label.edit-goal', defaultMessage: 'Edit goal' },
+  goalTarget: { id: 'label.goal-target', defaultMessage: 'Goal target' },
+  archived: { id: 'label.archived', defaultMessage: 'Archived' },
   journey: { id: 'label.journey', defaultMessage: 'Journey' },
   journeyDescription: {
     id: 'label.journey-description',

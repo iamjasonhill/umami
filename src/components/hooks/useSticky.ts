@@ -1,12 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 
-export function useSticky({ enabled = true, threshold = 1 }) {
+type StickyOptions = {
+  enabled?: boolean;
+  threshold?: number;
+};
+
+type StickyObserverCallback = (entries: IntersectionObserverEntry[]) => void;
+
+export function useSticky({ enabled = true, threshold = 1 }: StickyOptions) {
   const [isSticky, setIsSticky] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
     let observer: IntersectionObserver | undefined;
-    const handler: IntersectionObserverCallback = ([entry]) =>
+    const handler: StickyObserverCallback = ([entry]) =>
       setIsSticky(entry.intersectionRatio < threshold);
 
     if (enabled && ref.current) {

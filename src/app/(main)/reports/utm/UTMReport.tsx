@@ -1,4 +1,5 @@
 'use client';
+import { useMemo } from 'react';
 import Report from '../[reportId]/Report';
 import ReportHeader from '../[reportId]/ReportHeader';
 import ReportMenu from '../[reportId]/ReportMenu';
@@ -8,17 +9,30 @@ import UTMView from './UTMView';
 import Tag from '@/assets/tag.svg';
 import { REPORT_TYPES } from '@/lib/constants';
 
-const defaultParameters = {
-  type: REPORT_TYPES.utm,
-  parameters: {},
-};
+interface UTMReportProps {
+  reportId?: string;
+  websiteId?: string;
+  allowWebsiteSelect?: boolean;
+}
 
-export default function UTMReport({ reportId }: { reportId?: string }) {
+export default function UTMReport({
+  reportId,
+  websiteId,
+  allowWebsiteSelect = true,
+}: UTMReportProps) {
+  const defaultParameters = useMemo(
+    () => ({
+      type: REPORT_TYPES.utm,
+      parameters: websiteId ? { websiteId } : {},
+    }),
+    [websiteId],
+  );
+
   return (
     <Report reportId={reportId} defaultParameters={defaultParameters}>
       <ReportHeader icon={<Tag />} />
       <ReportMenu>
-        <UTMParameters />
+        <UTMParameters allowWebsiteSelect={allowWebsiteSelect} />
       </ReportMenu>
       <ReportBody>
         <UTMView />

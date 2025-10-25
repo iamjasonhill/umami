@@ -160,9 +160,43 @@ async function seed() {
 
   await prisma.websiteEvent.deleteMany({ where: { websiteId } });
   await prisma.session.deleteMany({ where: { websiteId } });
+  await prisma.goal.deleteMany({ where: { websiteId } });
 
   await prisma.session.createMany({ data: sessions });
   await prisma.websiteEvent.createMany({ data: buildEvents(websiteId, sessionIds) });
+  await prisma.goal.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        websiteId,
+        name: 'Product Page Views',
+        type: 'url',
+        value: '/feature-1',
+        target: 50,
+        isActive: true,
+      },
+      {
+        id: randomUUID(),
+        websiteId,
+        name: 'Signup Campaign Clicks',
+        type: 'event',
+        value: 'signup_cta',
+        target: 30,
+        isActive: true,
+      },
+      {
+        id: randomUUID(),
+        websiteId,
+        name: 'Average Order Value',
+        type: 'event-data',
+        value: 'purchase',
+        operator: 'average',
+        property: 'order_value',
+        target: 120,
+        isActive: true,
+      },
+    ],
+  });
 
   log('Seed complete.');
 }
