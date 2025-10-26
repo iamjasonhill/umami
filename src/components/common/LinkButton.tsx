@@ -9,10 +9,18 @@ export interface LinkButtonProps {
   className?: string;
   variant?: string;
   scroll?: boolean;
+  onClick?: (event: React.MouseEvent<HTMLAnchorElement>) => void;
   children?: ReactNode;
 }
 
-export function LinkButton({ href, className, variant, scroll = true, children }: LinkButtonProps) {
+export function LinkButton({
+  href,
+  className,
+  variant,
+  scroll = true,
+  onClick,
+  children,
+}: LinkButtonProps) {
   const { dir } = useLocale();
 
   return (
@@ -21,6 +29,7 @@ export function LinkButton({ href, className, variant, scroll = true, children }
       href={href}
       dir={dir}
       scroll={scroll}
+      onClick={onClick}
     >
       {children}
     </Link>

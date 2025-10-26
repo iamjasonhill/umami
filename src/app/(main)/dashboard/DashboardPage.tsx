@@ -1,4 +1,6 @@
 'use client';
+import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Icon, Icons, Loading, Text } from 'react-basics';
 import PageHeader from '@/components/layout/PageHeader';
 import Pager from '@/components/common/Pager';
@@ -18,9 +20,31 @@ export function DashboardPage() {
   const pageSize = isEdited ? 200 : 10;
 
   const { result, query, params, setParams } = useWebsites({ teamId }, { pageSize });
-  const { router, renderUrl } = useNavigation();
-  const currentPage = Number(params.page) || 1;
+  const { query: urlQuery, router, renderUrl } = useNavigation();
+  const pathname = usePathname();
+  const queryPage = Number.parseInt(urlQuery.page as string, 10);
+  const normalizedQueryPage = Number.isNaN(queryPage) || queryPage < 1 ? 1 : queryPage;
+  const storageKey = `dashboard-page:${pathname}`;
+  const storedPage = Number.parseInt(
+    typeof window !== 'undefined' ? sessionStorage.getItem(storageKey) || '' : '',
+    10,
+  );
+  const currentPage =
+    !Number.isNaN(storedPage) && !urlQuery.page ? storedPage : normalizedQueryPage;
   const hasData = !!result?.data?.length;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const targetPage = Number(params.page) || currentPage;
+    sessionStorage.setItem(storageKey, String(targetPage));
+
+    if (!urlQuery.page && targetPage !== normalizedQueryPage) {
+      setParams(prev => ({ ...prev, page: targetPage }));
+    }
+  }, [currentPage, params.page, setParams, storageKey, urlQuery.page, normalizedQueryPage]);
 
   const handlePageChange = (page: number) => {
     setParams({ ...params, page });
