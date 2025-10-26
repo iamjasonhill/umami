@@ -1,4 +1,5 @@
 'use client';
+import { useEffect, useMemo, useState } from 'react';
 import { Icon, Icons, Text } from 'react-basics';
 import { usePathname } from 'next/navigation';
 import FilterTags from '@/components/metrics/FilterTags';
@@ -28,8 +29,26 @@ export default function WebsiteDetailsPage({ websiteId }: { websiteId: string })
     return obj;
   }, {});
 
-  const dashboardUrl = renderTeamUrl('/dashboard');
-  const backHref = dashboardPage ? buildUrl(dashboardUrl, { page: dashboardPage }) : dashboardUrl;
+  const dashboardUrl = useMemo(() => renderTeamUrl('/dashboard'), [renderTeamUrl]);
+  const [backHref, setBackHref] = useState(dashboardUrl);
+
+  useEffect(() => {
+    const normalizedDashboardPage = Number.parseInt(dashboardPage as string, 10);
+    let targetPage =
+      !Number.isNaN(normalizedDashboardPage) && normalizedDashboardPage > 0
+        ? normalizedDashboardPage
+        : undefined;
+
+    if (!targetPage && typeof window !== 'undefined') {
+      const storageKey = `dashboard-page:${dashboardUrl}`;
+      const stored = Number.parseInt(sessionStorage.getItem(storageKey) || '', 10);
+      if (!Number.isNaN(stored) && stored > 0) {
+        targetPage = stored;
+      }
+    }
+
+    setBackHref(targetPage ? buildUrl(dashboardUrl, { page: targetPage }) : dashboardUrl);
+  }, [dashboardPage, dashboardUrl]);
 
   return (
     <>
