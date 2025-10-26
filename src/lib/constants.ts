@@ -55,6 +55,7 @@ export const SESSION_COLUMNS = [
   'country',
   'city',
   'region',
+  'channel',
 ];
 
 export const FILTER_GROUPS = {
@@ -67,6 +68,7 @@ export const FILTER_COLUMNS = {
   entry: 'url_path',
   exit: 'url_path',
   referrer: 'referrer_domain',
+  channel: 'channel_first',
   host: 'hostname',
   title: 'page_title',
   query: 'url_query',

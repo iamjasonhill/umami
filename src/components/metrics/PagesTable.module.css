@@ -1,0 +1,18 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.link {
+  flex: 1;
+  min-width: 0;
+}
+
+.link :global(.row) {
+  justify-content: space-between;
+}
+
+.link :global(.label) {
+  max-width: 100%;
+}

@@ -1,0 +1,38 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--base300);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  line-height: 1;
+  background: var(--base0);
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.badge:hover {
+  background: var(--base100);
+}
+
+.badge.active {
+  border-color: var(--primary300);
+  background: var(--primary50);
+  color: var(--primary700);
+}
+
+.name {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.share {
+  font-variant-numeric: tabular-nums;
+  color: var(--base500);
+}
+
+.badge.active .share {
+  color: inherit;
+}

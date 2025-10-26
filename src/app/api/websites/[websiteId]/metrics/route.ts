@@ -23,6 +23,81 @@ import {
 } from '@/queries';
 import { filterParams } from '@/lib/schema';
 
+function formatEntryMetrics(data: any[]) {
+  return data.map(row => {
+    const rawChannels = normalizeChannelArray(row.channels ?? row.channel_array);
+    const total = Number(row.y) || 0;
+
+    const counts = rawChannels.reduce<Record<string, number>>((acc, value) => {
+      if (!value) {
+        return acc;
+      }
+
+      const key = String(value);
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    const breakdown = Object.entries(counts)
+      .map(([channel, count]) => ({
+        channel,
+        count,
+        share: total ? count / total : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    const knownTotal = breakdown.reduce((sum, item) => sum + item.count, 0);
+    const unknownCount = Math.max(total - knownTotal, 0);
+
+    if (unknownCount > 0) {
+      breakdown.push({
+        channel: null,
+        count: unknownCount,
+        share: total ? unknownCount / total : 0,
+      });
+    }
+
+    const topChannel = breakdown[0];
+
+    const rest = { ...row };
+    delete rest.channels;
+    delete rest.channel_array;
+    delete rest.y_channel;
+
+    return {
+      ...rest,
+      channel: topChannel?.channel ?? null,
+      channelCount: topChannel?.count ?? 0,
+      channelShare: topChannel?.share ?? 0,
+      channels: breakdown,
+    };
+  });
+}
+
+function normalizeChannelArray(value: unknown): string[] {
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .flatMap(item => (Array.isArray(item) ? item : [item]))
+      .map(item => (typeof item === 'string' ? item : item?.channel))
+      .filter(Boolean) as string[];
+  }
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return normalizeChannelArray(parsed);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  return [];
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ websiteId: string }> },
@@ -96,6 +171,10 @@ export async function GET(
       data = await getEventMetrics(websiteId, type, filters, limit, offset);
     } else {
       data = await getPageviewMetrics(websiteId, type, filters, limit, offset);
+
+      if (type === 'entry') {
+        data = formatEntryMetrics(data);
+      }
     }
 
     return json(data);
