@@ -41,6 +41,20 @@ model Session {
   city       String?   @db.VarChar(50)
   distinctId String?   @map("distinct_id") @db.VarChar(50)
   createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  rawSource  String?   @map("raw_source") @db.VarChar(128)
+  rawMedium  String?   @map("raw_medium") @db.VarChar(64)
+  rawCampaign String?  @map("raw_campaign") @db.VarChar(128)
+  rawContent String?   @map("raw_content") @db.VarChar(128)
+  rawTerm    String?   @map("raw_term") @db.VarChar(128)
+  rawReferrerDomain String? @map("raw_referrer_domain") @db.VarChar(255)
+  rawReferrerPath String? @map("raw_referrer_path") @db.VarChar(512)
+  userAgent  String?   @map("user_agent") @db.VarChar(512)
+  attributionVersion Int? @map("attribution_version")
+  channelFirst String? @map("channel_first") @db.VarChar(32)
+  channelLast  String? @map("channel_last") @db.VarChar(32)
+  channelStrengthFirst Int? @map("channel_strength_first") @db.SmallInt
+  channelStrengthLast  Int? @map("channel_strength_last") @db.SmallInt
+  channelReason Json?  @map("channel_reason")
 
   websiteEvent WebsiteEvent[]
   sessionData  SessionData[]
@@ -57,7 +71,35 @@ model Session {
   @@index([websiteId, createdAt, country])
   @@index([websiteId, createdAt, region])
   @@index([websiteId, createdAt, city])
+  @@index([websiteId, channelLast])
+  @@index([websiteId, attributionVersion])
   @@map("session")
+}
+
+model AttributionConfig {
+  id        Int       @id @default(autoincrement())
+  version   Int       @unique
+  yaml      String    @db.Text
+  active    Boolean   @default(true)
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([active])
+  @@map("attribution_config")
+}
+
+model LinkRegistry {
+  id        BigInt    @id @default(autoincrement()) @map("link_registry_id")
+  shortId   String    @unique @map("short_id") @db.VarChar(16)
+  url       String    @db.Text
+  owner     String?   @db.VarChar(100)
+  tags      String[]  @default([]) @db.Text
+  metadata  Json?
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([owner])
+  @@map("link_registry")
 }
 
 model Website {

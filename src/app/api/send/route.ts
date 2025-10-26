@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import { isbot } from 'isbot';
 import { startOfHour, startOfMonth } from 'date-fns';
+import { Prisma } from '@prisma/client';
 import clickhouse from '@/lib/clickhouse';
+import prisma from '@/lib/prisma';
 import { parseRequest } from '@/lib/request';
 import { badRequest, json, forbidden, serverError } from '@/lib/response';
 import { fetchWebsite } from '@/lib/load';
@@ -12,6 +14,9 @@ import { COLLECTION_TYPE } from '@/lib/constants';
 import { anyObjectParam, urlOrPathParam } from '@/lib/schema';
 import { safeDecodeURI, safeDecodeURIComponent } from '@/lib/url';
 import { createSession, saveEvent, saveSessionData } from '@/queries';
+import { loadAttributionConfig } from '@/lib/attribution/config';
+import { normalizeAttributionInput } from '@/lib/attribution/normalize';
+import { classifyAttribution } from '@/lib/attribution/classifier';
 
 const schema = z.object({
   type: z.enum(['event', 'identify']),
@@ -104,23 +109,53 @@ export async function POST(request: Request) {
     const sessionId = id ? uuid(websiteId, id) : uuid(websiteId, ip, userAgent, sessionSalt);
 
     // Create a session if not found
+    let attribution;
+    let attributionConfig: Awaited<ReturnType<typeof loadAttributionConfig>> | null = null;
+
     if (!clickhouse.enabled && !cache?.sessionId) {
-      await createSession(
-        {
-          id: sessionId,
-          websiteId,
-          browser,
-          os,
-          device,
-          screen,
-          language,
-          country,
-          region,
-          city,
-          distinctId: id,
-        },
-        { skipDuplicates: true },
-      );
+      attributionConfig = await loadAttributionConfig();
+
+      const normalized = normalizeAttributionInput({
+        utmSource: payload.data?.utmSource,
+        utmMedium: payload.data?.utmMedium,
+        utmCampaign: payload.data?.utmCampaign,
+        utmContent: payload.data?.utmContent,
+        utmTerm: payload.data?.utmTerm,
+        referrerHost: payload.data?.referrerDomain,
+        userAgent,
+      });
+
+      attribution = classifyAttribution(normalized, attributionConfig.config);
+
+      const sessionCreateInput = {
+        id: sessionId,
+        websiteId,
+        browser,
+        os,
+        device,
+        screen,
+        language,
+        country,
+        region,
+        city,
+        distinctId: id,
+        rawSource: normalized.utmSource,
+        rawMedium: normalized.utmMedium,
+        rawCampaign: normalized.utmCampaign,
+        rawContent: normalized.utmContent,
+        rawTerm: normalized.utmTerm,
+        rawReferrerDomain: normalized.referrerHost,
+        rawReferrerPath: payload.data?.referrerPath || undefined,
+        userAgent,
+        attributionVersion: attributionConfig.version,
+        channelFirst: attribution.channel,
+        channelLast: attribution.channel,
+        channelStrengthFirst: attribution.strength,
+        channelStrengthLast: attribution.strength,
+        channelReason: attribution.reasons as Prisma.InputJsonValue,
+      } as Prisma.SessionUncheckedCreateInput;
+
+      await createSession(sessionCreateInput, { skipDuplicates: true });
     }
 
     // Visit info
@@ -176,6 +211,79 @@ export async function POST(request: Request) {
         }
       }
 
+      const configResult = attributionConfig ?? (await loadAttributionConfig());
+      const normalized = normalizeAttributionInput({
+        utmSource,
+        utmMedium,
+        utmCampaign,
+        utmContent,
+        utmTerm,
+        referrerHost: referrerDomain,
+        userAgent,
+      });
+
+      const classification = classifyAttribution(normalized, configResult.config);
+
+      if (!clickhouse.enabled) {
+        const session = await prisma.client.session.findUnique({
+          where: { id: sessionId },
+          select: {
+            channelLast: true,
+            channelStrengthLast: true,
+          },
+        });
+
+        const sessionUpdate: Prisma.SessionUncheckedUpdateInput = {};
+
+        if (normalized.utmSource !== undefined) {
+          Object.assign(sessionUpdate, { rawSource: normalized.utmSource });
+        }
+
+        if (normalized.utmMedium !== undefined) {
+          Object.assign(sessionUpdate, { rawMedium: normalized.utmMedium });
+        }
+
+        if (normalized.utmCampaign !== undefined) {
+          Object.assign(sessionUpdate, { rawCampaign: normalized.utmCampaign });
+        }
+
+        if (normalized.utmContent !== undefined) {
+          Object.assign(sessionUpdate, { rawContent: normalized.utmContent });
+        }
+
+        if (normalized.utmTerm !== undefined) {
+          Object.assign(sessionUpdate, { rawTerm: normalized.utmTerm });
+        }
+
+        if (normalized.referrerHost !== undefined) {
+          Object.assign(sessionUpdate, { rawReferrerDomain: normalized.referrerHost });
+        }
+
+        const currentStrength = session?.channelStrengthLast ?? -1;
+        const shouldUpdateChannel =
+          session === null ||
+          session === undefined ||
+          classification.strength > currentStrength ||
+          (classification.strength === currentStrength &&
+            classification.channel !== session.channelLast);
+
+        if (shouldUpdateChannel) {
+          Object.assign(sessionUpdate, {
+            channelLast: classification.channel,
+            channelStrengthLast: classification.strength,
+            channelReason: classification.reasons as Prisma.InputJsonValue,
+            attributionVersion: configResult.version,
+          });
+        }
+
+        if (Object.keys(sessionUpdate).length > 0) {
+          await prisma.client.session.update({
+            where: { id: sessionId },
+            data: sessionUpdate,
+          });
+        }
+      }
+
       await saveEvent({
         websiteId,
         sessionId,
@@ -204,7 +312,6 @@ export async function POST(request: Request) {
 
         // Events
         eventName: name,
-        eventData: data,
         tag,
 
         // UTM

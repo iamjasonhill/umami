@@ -2,38 +2,12 @@ import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 
 export async function createSession(
-  data: Prisma.SessionCreateInput,
+  data: Prisma.SessionUncheckedCreateInput,
   options = { skipDuplicates: false },
 ) {
-  const {
-    id,
-    websiteId,
-    browser,
-    os,
-    device,
-    screen,
-    language,
-    country,
-    region,
-    city,
-    distinctId,
-  } = data;
-
   try {
     return await prisma.client.session.create({
-      data: {
-        id,
-        websiteId,
-        browser,
-        os,
-        device,
-        screen,
-        language,
-        country,
-        region,
-        city,
-        distinctId,
-      },
+      data,
     });
   } catch (e: any) {
     // With skipDuplicates flag: ignore unique constraint error and return null
