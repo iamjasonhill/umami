@@ -90,8 +90,6 @@ export const labels = defineMessages({
   refresh: { id: 'label.refresh', defaultMessage: 'Refresh' },
   pages: { id: 'label.pages', defaultMessage: 'Pages' },
   page: { id: 'label.page', defaultMessage: 'Page' },
-  channel: { id: 'label.channel', defaultMessage: 'Channel' },
-  channelShare: { id: 'label.channel-share', defaultMessage: 'Channel share' },
   referrers: { id: 'label.referrers', defaultMessage: 'Referrers' },
   exit: { id: 'label.exit', defaultMessage: 'Exit path' },
   hosts: { id: 'label.hosts', defaultMessage: 'Hosts' },
