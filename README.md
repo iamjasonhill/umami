@@ -69,6 +69,21 @@ pnpm run build
 
 _The build step will create tables in your database if you are installing for the first time. It will also create a login user with username **admin** and password **umami**._
 
+### Scripts
+
+- `pnpm start-env` - Start PostgreSQL and Redis docker instances
+- `pnpm build` - Build the application
+
+### Backfill attribution channels
+
+Run the helper script to reclassify existing sessions after deploying attribution updates:
+
+```bash
+DATABASE_URL=postgres://... pnpm ts-node scripts/backfill-attribution.ts --since 2025-10-25T00:00:00Z
+```
+
+Add `--dry-run` to inspect counts without writing changes.
+
 ### Start the Application
 
 ```bash
