@@ -6,7 +6,7 @@ import WebsiteChartList from '../websites/[websiteId]/WebsiteChartList';
 import DashboardSettingsButton from '@/app/(main)/dashboard/DashboardSettingsButton';
 import DashboardEdit from '@/app/(main)/dashboard/DashboardEdit';
 import EmptyPlaceholder from '@/components/common/EmptyPlaceholder';
-import { useMessages, useLocale, useTeamUrl, useWebsites } from '@/components/hooks';
+import { useMessages, useLocale, useTeamUrl, useWebsites, useNavigation } from '@/components/hooks';
 import useDashboard from '@/store/dashboard';
 import LinkButton from '@/components/common/LinkButton';
 
@@ -18,11 +18,13 @@ export function DashboardPage() {
   const pageSize = isEdited ? 200 : 10;
 
   const { result, query, params, setParams } = useWebsites({ teamId }, { pageSize });
-  const { page } = params;
+  const { router, renderUrl } = useNavigation();
+  const currentPage = Number(params.page) || 1;
   const hasData = !!result?.data?.length;
 
   const handlePageChange = (page: number) => {
     setParams({ ...params, page });
+    router.push(renderUrl({ page }));
   };
 
   if (query.isLoading) {
@@ -53,9 +55,10 @@ export function DashboardPage() {
                 websites={result?.data as any}
                 showCharts={showCharts}
                 limit={pageSize}
+                dashboardPage={currentPage}
               />
               <Pager
-                page={page}
+                page={currentPage}
                 pageSize={pageSize}
                 count={result?.count}
                 onPageChange={handlePageChange}

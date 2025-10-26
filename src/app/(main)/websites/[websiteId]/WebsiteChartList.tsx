@@ -7,15 +7,18 @@ import useDashboard from '@/store/dashboard';
 import WebsiteHeader from './WebsiteHeader';
 import { WebsiteMetricsBar } from './WebsiteMetricsBar';
 import { useMessages, useLocale, useTeamUrl } from '@/components/hooks';
+import { buildUrl } from '@/lib/url';
 
 export default function WebsiteChartList({
   websites,
   showCharts,
   limit,
+  dashboardPage,
 }: {
   websites: any[];
   showCharts?: boolean;
   limit?: number;
+  dashboardPage?: number;
 }) {
   const { formatMessage, labels } = useMessages();
   const { websiteOrder, websiteActive } = useDashboard();
@@ -35,16 +38,23 @@ export default function WebsiteChartList({
         return index < limit ? (
           <div key={id}>
             <WebsiteHeader websiteId={id} showLinks={false}>
-              <Link href={renderTeamUrl(`/websites/${id}`)}>
-                <Button variant="primary">
-                  <Text>{formatMessage(labels.viewDetails)}</Text>
-                  <Icon>
-                    <Icon rotate={dir === 'rtl' ? 180 : 0}>
-                      <Icons.ArrowRight />
-                    </Icon>
-                  </Icon>
-                </Button>
-              </Link>
+              {(() => {
+                const detailsUrl = renderTeamUrl(`/websites/${id}`);
+                const href = dashboardPage ? buildUrl(detailsUrl, { dashboardPage }) : detailsUrl;
+
+                return (
+                  <Link href={href}>
+                    <Button variant="primary">
+                      <Text>{formatMessage(labels.viewDetails)}</Text>
+                      <Icon>
+                        <Icon rotate={dir === 'rtl' ? 180 : 0}>
+                          <Icons.ArrowRight />
+                        </Icon>
+                      </Icon>
+                    </Button>
+                  </Link>
+                );
+              })()}
             </WebsiteHeader>
             <WebsiteMetricsBar websiteId={id} showChange={true} />
             {showCharts && <WebsiteChart websiteId={id} />}

@@ -84,6 +84,7 @@ export const labels = defineMessages({
   singleDay: { id: 'label.single-day', defaultMessage: 'Single day' },
   dateRange: { id: 'label.date-range', defaultMessage: 'Date range' },
   viewDetails: { id: 'label.view-details', defaultMessage: 'View details' },
+  backToDashboard: { id: 'label.back-to-dashboard', defaultMessage: 'Back to dashboard' },
   deleteTeam: { id: 'label.delete-team', defaultMessage: 'Delete team' },
   leaveTeam: { id: 'label.leave-team', defaultMessage: 'Leave team' },
   refresh: { id: 'label.refresh', defaultMessage: 'Refresh' },

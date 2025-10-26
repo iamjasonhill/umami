@@ -17,7 +17,7 @@ export function LinkButton({ href, className, variant, scroll = true, children }
 
   return (
     <Link
-      className={classNames(styles.button, className, { [styles[variant]]: true })}
+      className={classNames(styles.button, className, variant && styles[variant])}
       href={href}
       dir={dir}
       scroll={scroll}
