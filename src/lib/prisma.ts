@@ -11,8 +11,11 @@ import { filtersToArray } from './params';
 
 const log = debug('umami:prisma');
 
-const PRISMA = 'prisma';
-const globalForPrisma = globalThis as unknown as { [PRISMA]?: PrismaClient };
+declare global {
+  // eslint-disable-next-line no-var
+  var __umami_prisma__: PrismaClient | undefined;
+}
+
 const PRISMA_LOG_OPTIONS = {
   log: [
     {
@@ -302,9 +305,15 @@ async function rawQuery(sql: string, data: object): Promise<any> {
     return db === MYSQL ? '?' : `$${params.length}${type ?? ''}`;
   });
 
-  return process.env.DATABASE_REPLICA_URL
-    ? client.$replica().$queryRawUnsafe(query, ...params)
-    : client.$queryRawUnsafe(query, ...params);
+  const replicaCapableClient = client as PrismaClient & {
+    $replica?: () => PrismaClient;
+  };
+
+  if (process.env.DATABASE_REPLICA_URL && typeof replicaCapableClient.$replica === 'function') {
+    return replicaCapableClient.$replica().$queryRawUnsafe(query, ...params);
+  }
+
+  return client.$queryRawUnsafe(query, ...params);
 }
 
 async function pagedQuery<T>(model: string, criteria: T, pageParams: PageParams) {
@@ -397,7 +406,7 @@ function transaction(input: any, options?: any) {
   return client.$transaction(input, options);
 }
 
-function getClient(params?: {
+function createPrismaClient(params?: {
   logQuery?: boolean;
   queryLogger?: () => void;
   replicaUrl?: string;
@@ -428,18 +437,16 @@ function getClient(params?: {
     prisma.$on('query' as never, queryLogger || log);
   }
 
-  if (process.env.NODE_ENV !== 'production') {
-    globalForPrisma[PRISMA] = prisma;
-  }
-
   log('Prisma initialized');
 
   return prisma;
 }
 
-const client = globalForPrisma[PRISMA] ?? getClient();
+const client = globalThis.__umami_prisma__ ?? createPrismaClient();
 
-globalForPrisma[PRISMA] = client;
+if (!globalThis.__umami_prisma__) {
+  globalThis.__umami_prisma__ = client;
+}
 
 export default {
   client,
