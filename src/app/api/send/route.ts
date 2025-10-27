@@ -18,6 +18,136 @@ import { loadAttributionConfig } from '@/lib/attribution/config';
 import { normalizeAttributionInput } from '@/lib/attribution/normalize';
 import { classifyAttribution } from '@/lib/attribution/classifier';
 
+type TrackingContext = {
+  urlPath: string;
+  urlQuery: string;
+  urlDomain: string;
+  referrerDomain?: string;
+  referrerPath?: string;
+  referrerQuery?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmContent?: string;
+  utmTerm?: string;
+  gclid?: string;
+  fbclid?: string;
+  msclkid?: string;
+  ttclid?: string;
+  lifatid?: string;
+  twclid?: string;
+};
+
+type TrackingContextInput = {
+  url?: string | null;
+  hostname?: string;
+  referrer?: string | null;
+  data?: Record<string, any> | null;
+  removeTrailingSlash: boolean;
+};
+
+function buildTrackingContext({
+  url,
+  hostname,
+  referrer,
+  data,
+  removeTrailingSlash,
+}: TrackingContextInput): TrackingContext {
+  const base = hostname ? `https://${hostname}` : 'https://localhost';
+
+  let currentUrl: URL | null = null;
+
+  if (url) {
+    try {
+      currentUrl = new URL(url, base);
+    } catch {
+      currentUrl = null;
+    }
+  }
+
+  let referrerUrl: URL | null = null;
+
+  if (referrer) {
+    try {
+      referrerUrl = new URL(referrer, base);
+    } catch {
+      referrerUrl = null;
+    }
+  }
+
+  let urlPath = '';
+
+  if (currentUrl) {
+    urlPath = currentUrl.pathname === '/undefined' ? '' : currentUrl.pathname + currentUrl.hash;
+  }
+
+  if (removeTrailingSlash) {
+    urlPath = urlPath.replace(/\/(?=(#.*)?$)/, '');
+  }
+
+  const urlQuery = currentUrl?.search.substring(1) ?? '';
+  const urlDomain =
+    currentUrl?.hostname.replace(/^www\./, '') ?? hostname?.replace(/^www\./, '') ?? 'localhost';
+
+  const derivedReferrerDomain = (() => {
+    const fromData = data?.referrerDomain as string | undefined;
+
+    if (fromData) {
+      return fromData;
+    }
+
+    if (referrerUrl?.hostname && referrerUrl.hostname !== 'localhost') {
+      return referrerUrl.hostname.replace(/^www\./, '');
+    }
+
+    return undefined;
+  })();
+
+  const referrerPath =
+    (data?.referrerPath as string | undefined) ?? referrerUrl?.pathname ?? undefined;
+  const referrerQuery = referrerUrl?.search.substring(1) ?? undefined;
+
+  const searchParams = currentUrl?.searchParams;
+
+  const utmSource =
+    (data?.utmSource as string | undefined) ?? searchParams?.get('utm_source') ?? undefined;
+  const utmMedium =
+    (data?.utmMedium as string | undefined) ?? searchParams?.get('utm_medium') ?? undefined;
+  const utmCampaign =
+    (data?.utmCampaign as string | undefined) ?? searchParams?.get('utm_campaign') ?? undefined;
+  const utmContent =
+    (data?.utmContent as string | undefined) ?? searchParams?.get('utm_content') ?? undefined;
+  const utmTerm =
+    (data?.utmTerm as string | undefined) ?? searchParams?.get('utm_term') ?? undefined;
+
+  const gclid = searchParams?.get('gclid') ?? undefined;
+  const fbclid = searchParams?.get('fbclid') ?? undefined;
+  const msclkid = searchParams?.get('msclkid') ?? undefined;
+  const ttclid = searchParams?.get('ttclid') ?? undefined;
+  const lifatid = searchParams?.get('li_fat_id') ?? undefined;
+  const twclid = searchParams?.get('twclid') ?? undefined;
+
+  return {
+    urlPath,
+    urlQuery,
+    urlDomain,
+    referrerDomain: derivedReferrerDomain,
+    referrerPath,
+    referrerQuery,
+    utmSource,
+    utmMedium,
+    utmCampaign,
+    utmContent,
+    utmTerm,
+    gclid,
+    fbclid,
+    msclkid,
+    ttclid,
+    lifatid,
+    twclid,
+  };
+}
+
 const schema = z.object({
   type: z.enum(['event', 'identify']),
   payload: z.object({
@@ -62,6 +192,15 @@ export async function POST(request: Request) {
       timestamp,
       id,
     } = payload;
+
+    const refererHeader = request.headers.get('referer') ?? undefined;
+    const tracking = buildTrackingContext({
+      url,
+      hostname,
+      referrer: referrer ?? refererHeader,
+      data,
+      removeTrailingSlash: Boolean(process.env.REMOVE_TRAILING_SLASH),
+    });
 
     // Cache check
     let cache: { websiteId: string; sessionId: string; visitId: string; iat: number } | null = null;
@@ -116,12 +255,12 @@ export async function POST(request: Request) {
       attributionConfig = await loadAttributionConfig();
 
       const normalized = normalizeAttributionInput({
-        utmSource: payload.data?.utmSource,
-        utmMedium: payload.data?.utmMedium,
-        utmCampaign: payload.data?.utmCampaign,
-        utmContent: payload.data?.utmContent,
-        utmTerm: payload.data?.utmTerm,
-        referrerHost: payload.data?.referrerDomain,
+        utmSource: tracking.utmSource,
+        utmMedium: tracking.utmMedium,
+        utmCampaign: tracking.utmCampaign,
+        utmContent: tracking.utmContent,
+        utmTerm: tracking.utmTerm,
+        referrerHost: tracking.referrerDomain,
         userAgent,
       });
 
@@ -145,7 +284,7 @@ export async function POST(request: Request) {
         rawContent: normalized.utmContent,
         rawTerm: normalized.utmTerm,
         rawReferrerDomain: normalized.referrerHost,
-        rawReferrerPath: payload.data?.referrerPath || undefined,
+        rawReferrerPath: tracking.referrerPath,
         userAgent,
         attributionVersion: attributionConfig.version,
         channelFirst: attribution.channel,
@@ -169,47 +308,25 @@ export async function POST(request: Request) {
     }
 
     if (type === COLLECTION_TYPE.event) {
-      const base = hostname ? `https://${hostname}` : 'https://localhost';
-      const currentUrl = new URL(url, base);
-
-      let urlPath =
-        currentUrl.pathname === '/undefined' ? '' : currentUrl.pathname + currentUrl.hash;
-      const urlQuery = currentUrl.search.substring(1);
-      const urlDomain = currentUrl.hostname.replace(/^www./, '');
-
-      let referrerPath: string;
-      let referrerQuery: string;
-      let referrerDomain: string;
-
-      // UTM Params
-      const utmSource = currentUrl.searchParams.get('utm_source');
-      const utmMedium = currentUrl.searchParams.get('utm_medium');
-      const utmCampaign = currentUrl.searchParams.get('utm_campaign');
-      const utmContent = currentUrl.searchParams.get('utm_content');
-      const utmTerm = currentUrl.searchParams.get('utm_term');
-
-      // Click IDs
-      const gclid = currentUrl.searchParams.get('gclid');
-      const fbclid = currentUrl.searchParams.get('fbclid');
-      const msclkid = currentUrl.searchParams.get('msclkid');
-      const ttclid = currentUrl.searchParams.get('ttclid');
-      const lifatid = currentUrl.searchParams.get('li_fat_id');
-      const twclid = currentUrl.searchParams.get('twclid');
-
-      if (process.env.REMOVE_TRAILING_SLASH) {
-        urlPath = urlPath.replace(/\/(?=(#.*)?$)/, '');
-      }
-
-      if (referrer) {
-        const referrerUrl = new URL(referrer, base);
-
-        referrerPath = referrerUrl.pathname;
-        referrerQuery = referrerUrl.search.substring(1);
-
-        if (referrerUrl.hostname !== 'localhost') {
-          referrerDomain = referrerUrl.hostname.replace(/^www\./, '');
-        }
-      }
+      const {
+        urlPath,
+        urlQuery,
+        urlDomain,
+        referrerDomain: resolvedReferrerDomain,
+        referrerPath,
+        referrerQuery,
+        utmSource,
+        utmMedium,
+        utmCampaign,
+        utmContent,
+        utmTerm,
+        gclid,
+        fbclid,
+        msclkid,
+        ttclid,
+        lifatid,
+        twclid,
+      } = tracking;
 
       const configResult = attributionConfig ?? (await loadAttributionConfig());
       const normalized = normalizeAttributionInput({
@@ -218,7 +335,7 @@ export async function POST(request: Request) {
         utmCampaign,
         utmContent,
         utmTerm,
-        referrerHost: referrerDomain,
+        referrerHost: resolvedReferrerDomain,
         userAgent,
       });
 
@@ -294,10 +411,10 @@ export async function POST(request: Request) {
         pageTitle: safeDecodeURIComponent(title),
         hostname: hostname || urlDomain,
         urlPath: safeDecodeURI(urlPath),
-        urlQuery,
+        urlQuery: urlQuery ?? '',
         referrerPath: safeDecodeURI(referrerPath),
         referrerQuery,
-        referrerDomain,
+        referrerDomain: resolvedReferrerDomain,
 
         // Session
         distinctId: id,
