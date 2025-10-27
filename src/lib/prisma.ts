@@ -12,6 +12,7 @@ import { filtersToArray } from './params';
 const log = debug('umami:prisma');
 
 const PRISMA = 'prisma';
+const globalForPrisma = globalThis as unknown as { [PRISMA]?: PrismaClient };
 const PRISMA_LOG_OPTIONS = {
   log: [
     {
@@ -428,7 +429,7 @@ function getClient(params?: {
   }
 
   if (process.env.NODE_ENV !== 'production') {
-    global[PRISMA] = prisma;
+    globalForPrisma[PRISMA] = prisma;
   }
 
   log('Prisma initialized');
@@ -436,7 +437,9 @@ function getClient(params?: {
   return prisma;
 }
 
-const client = global[PRISMA] || getClient();
+const client = globalForPrisma[PRISMA] ?? getClient();
+
+globalForPrisma[PRISMA] = client;
 
 export default {
   client,
