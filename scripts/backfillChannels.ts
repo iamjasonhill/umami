@@ -11,12 +11,16 @@ interface BackfillOptions {
   batchSize: number;
   dryRun: boolean;
   limit?: number;
+  force: boolean;
+  onlyDirect: boolean;
 }
 
 function parseArgs(argv: string[]): BackfillOptions {
   const options: BackfillOptions = {
     batchSize: 500,
     dryRun: false,
+    force: false,
+    onlyDirect: false,
   };
 
   for (let i = 2; i < argv.length; i += 1) {
@@ -30,6 +34,10 @@ function parseArgs(argv: string[]): BackfillOptions {
       options.dryRun = true;
     } else if (arg === '--limit' || arg === '-l') {
       options.limit = Number.parseInt(argv[++i] ?? '', 10) || undefined;
+    } else if (arg === '--force' || arg === '-f') {
+      options.force = true;
+    } else if (arg === '--only-direct') {
+      options.onlyDirect = true;
     } else {
       throw new Error(`Unknown argument: ${arg}`);
     }
@@ -55,14 +63,22 @@ async function main() {
       where: {
         AND: [
           { websiteId: options.websiteId },
-          {
-            OR: [
-              { channelFirst: null },
-              { channelLast: null },
-              { channelStrengthFirst: null },
-              { channelStrengthLast: null },
-            ],
-          },
+          options.force
+            ? undefined
+            : {
+                OR: [
+                  { channelFirst: null },
+                  { channelLast: null },
+                  { channelStrengthFirst: null },
+                  { channelStrengthLast: null },
+                ],
+              },
+          options.onlyDirect
+            ? {
+                channelFirst: 'direct',
+                rawReferrerDomain: { not: null },
+              }
+            : undefined,
         ].filter(Boolean) as Prisma.SessionWhereInput[],
       },
       take: options.batchSize,
@@ -120,7 +136,7 @@ async function main() {
         Object.assign(updateData, { attributionVersion: version });
       }
 
-      if (Object.keys(updateData).length === 0) {
+      if (!options.force && Object.keys(updateData).length === 0) {
         continue;
       }
 
@@ -134,6 +150,7 @@ async function main() {
       await client.session.update({
         where: { id: session.id },
         data: updateData,
+        skipDuplicates: false,
       });
     }
 
