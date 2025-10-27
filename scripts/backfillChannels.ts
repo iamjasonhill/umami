@@ -150,7 +150,6 @@ async function main() {
       await client.session.update({
         where: { id: session.id },
         data: updateData,
-        skipDuplicates: false,
       });
     }
 
